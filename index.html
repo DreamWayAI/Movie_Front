@@ -3,90 +3,105 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DreamAnimate DEMO</title>
+  <title>DreamAnimate</title>
   <style>
     body {
-      background: linear-gradient(to right, #1a034d, #3d1e78);
-      color: white;
-      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at center, #1a034d, #0a011f);
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+      text-align: center;
+      padding: 40px;
     }
     h1 {
-      font-size: 36px;
+      font-size: 48px;
       margin-bottom: 20px;
+      color: #00f7ff;
+      text-shadow: 0 0 15px #00f7ff;
     }
-    .upload-box, .generate-btn {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 20px;
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 20px;
-      backdrop-filter: blur(10px);
-      margin: 10px;
-      border: 1px solid rgba(255,255,255,0.2);
+      padding: 30px;
+      box-shadow: 0 0 30px rgba(0, 247, 255, 0.3);
     }
-    .generate-btn {
-      cursor: pointer;
+    input[type="file"], input[type="text"] {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 12px;
       border: none;
-      color: white;
+      font-size: 16px;
+    }
+    button {
+      background: #00f7ff;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 25px;
       font-size: 18px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      box-shadow: 0 0 20px #00f7ff;
     }
     #result {
-      margin-top: 20px;
+      margin-top: 30px;
+    }
+    video {
+      max-width: 100%;
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(0, 247, 255, 0.5);
     }
   </style>
 </head>
 <body>
   <h1>DreamAnimate</h1>
-
-  <div class="upload-box">
-    <input type="file" id="imageInput" />
+  <div class="container">
+    <input type="file" id="imageInput" accept="image/*" />
+    <input type="text" id="promptInput" placeholder="Опиши рух, наприклад: walking, smiling..." />
+    <button onclick="generate()">Створити відео</button>
+    <div id="result"></div>
   </div>
 
-  <button class="generate-btn" onclick="createAnimation()">Створити шедевр</button>
-  <button class="generate-btn" onclick="demoAnimation()">Спробувати демо</button>
-
-  <div id="result"></div>
-
   <script>
-    async function createAnimation(blob = null) {
+    async function generate() {
+      const imageInput = document.getElementById('imageInput');
+      const prompt = document.getElementById('promptInput').value;
+
+      if (!imageInput.files.length || !prompt) {
+        alert("Завантаж зображення і введи промпт");
+        return;
+      }
+
       const formData = new FormData();
-      if (blob) {
-        formData.append('file', blob, 'demo.jpg');
-      } else {
-        const input = document.getElementById('imageInput');
-        if (!input.files.length) return alert('Будь ласка, виберіть зображення.');
-        formData.append('file', input.files[0]);
+      formData.append("file", imageInput.files[0]);
+      formData.append("prompt", prompt);
+
+      document.getElementById('result').innerHTML = "<p>⏳ Створення відео, зачекай...</p>";
+
+      const res = await fetch("https://dreamanimate-backend.up.railway.app/generate", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!res.ok) {
+        alert("Помилка генерації");
+        return;
       }
 
-      try {
-        const res = await fetch('https://web-production-c7a5.up.railway.app/animate', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!res.ok) {
-          const err = await res.text();
-          alert("Помилка: " + err);
-          return;
-        }
-
-        const videoBlob = await res.blob();
-        const url = URL.createObjectURL(videoBlob);
-        document.getElementById('result').innerHTML =
-          '<video src="' + url + '" controls autoplay loop width="300"></video>';
-      } catch (err) {
-        alert('Помилка при відправці: ' + err.message);
-      }
-    }
-
-    async function demoAnimation() {
-      const res = await fetch("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEhUQEBAWFRUVGBUVFRgXFxUVGBUWFxUXFhUVFhUYHSggGBolHRUXITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGhAQGzAlICUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAMIBAwMBIgACEQEDEQH/xAAbAAEAAgMBAQAAAAAAAAAAAAAAAQIDBAUGB//EAEIQAAEDAwIEAwYEBQIDCQAAAAEAAhEDBBIhMQVBUQYTImFxgZGhMkKhscEUI1Jy0TNSYnKS4ZLC8DNDkqIVFyU0Q1RjoqOzwv/EABoBAAIDAQEAAAAAAAAAAAAAAAMEAAECBQb/xAArEQACAgEDAwIFBAMAAAAAAAAAAQIRAxIhBBMxQVEiYXGBkaEykaHB0eH/2gAMAwEAAhEDEQA/AO4oiICIiAiIgIiICIiAiIgIiICIiAiIgIiIPJ+Vx82zrEptM45K7kt+p0O19y4i4TXXDHPHFaYopbqB1zERdaHUUjNzpm1Lmo0miiNwvzS7H5zDkRu99eX0XlaSo2UciQKBgNgdeNUfHl3SpJ7VlJVrujlyqep4nDqWBdKWk4vxMfj+UbEXyozZkTayBIpAqYjZMJCDUVqKmVWupqDHiX1jyPRjmlS6VWuI1anp2UdnRSg2KhUamDJL7fTYbXT9IluZ8fkdL3NHqVkZFu5Pqp0j7D7bj+lbf3Nfr+4+pxVNlQCUJFhWqpxp3ApIByHbrjZcLv6rXaLRQRqET0HnEy0nk7vbi3j1g7PSdbXZOpnldoyCSnLKDAHH6UwJG4dlUus5LkY1MyDShzR+2f8AxcdAKGqSSOGLyEiwuJlIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgf/Z");
       const blob = await res.blob();
-      createAnimation(blob);
+      const url = URL.createObjectURL(blob);
+      document.getElementById('result').innerHTML = `
+        <video src="${url}" controls autoplay loop></video>
+        <br><a href="${url}" download="dream.mp4" style="color:#00f7ff;">⬇️ Завантажити відео</a>
+      `;
     }
   </script>
 </body>
