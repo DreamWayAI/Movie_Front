@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DreamAnimate</title>
+  <title>DreamAnimate Demo</title>
   <style>
     body {
       background: linear-gradient(to right, #1a034d, #3d1e78);
@@ -41,22 +41,26 @@
 </head>
 <body>
   <h1>DreamAnimate</h1>
+
   <div class="upload-box">
     <input type="file" id="imageInput" />
   </div>
+
   <button class="generate-btn" onclick="createAnimation()">Створити шедевр</button>
+  <button class="generate-btn" onclick="demoAnimation()">Спробувати демо</button>
+
   <div id="result"></div>
 
   <script>
-    async function createAnimation() {
-      const input = document.getElementById('imageInput');
-      if (!input.files.length) {
-        alert('Будь ласка, виберіть зображення.');
-        return;
-      }
-
+    async function createAnimation(blob = null) {
       const formData = new FormData();
-      formData.append('file', input.files[0]);
+      if (blob) {
+        formData.append('file', blob, 'demo.jpg');
+      } else {
+        const input = document.getElementById('imageInput');
+        if (!input.files.length) return alert('Будь ласка, виберіть зображення.');
+        formData.append('file', input.files[0]);
+      }
 
       try {
         const res = await fetch('https://web-production-c7a5.up.railway.app/animate', {
@@ -65,19 +69,24 @@
         });
 
         if (!res.ok) {
-          const errText = await res.text();
-          alert('Помилка: ' + errText);
+          const err = await res.text();
+          alert("Помилка: " + err);
           return;
         }
 
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
+        const videoBlob = await res.blob();
+        const url = URL.createObjectURL(videoBlob);
         document.getElementById('result').innerHTML =
           '<video src="' + url + '" controls autoplay loop width="300"></video>';
-
       } catch (err) {
         alert('Помилка при відправці: ' + err.message);
       }
+    }
+
+    async function demoAnimation() {
+      const response = await fetch("https://i.ibb.co/vdzH8s9/test-face.jpg");
+      const blob = await response.blob();
+      createAnimation(blob);
     }
   </script>
 </body>
