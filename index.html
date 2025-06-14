@@ -47,7 +47,7 @@
       const formData = new FormData();
       formData.append('file', input.files[0]);
 
-      const res = await fetch('https://your-backend-url/animate', {
+      const res = await fetch('https://movieback-production.up.railway.app/animate', {
         method: 'POST',
         body: formData
       });
